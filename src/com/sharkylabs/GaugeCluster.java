@@ -19,6 +19,7 @@ public class GaugeCluster extends Application {
 	private static GaugeCanvas canvas; 
 	
 	public static void main(String[] args) {
+		
 		Thread t = new Thread() {
 
 			@Override
@@ -33,7 +34,10 @@ public class GaugeCluster extends Application {
 						} else {
 							ecmInfo.parseData(line);
 						}
-						canvas.fireEvent(new ECMUpdateEvent());
+						if (canvas != null) {
+							//TODO move code to kick off thread to stage init
+							canvas.fireEvent(new ECMUpdateEvent());
+						}
 						ecmInfo.printCurrentData();
 					}
 				} catch (Exception e) {
@@ -46,6 +50,8 @@ public class GaugeCluster extends Application {
 	}
 
 	private static class ECMUpdateEvent extends Event {
+		private static final long serialVersionUID = 1L;
+
 		public ECMUpdateEvent() {
 			super(EVENT_TYPE_ECM_UPDATE);
 		}
