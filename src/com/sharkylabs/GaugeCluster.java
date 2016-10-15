@@ -14,6 +14,10 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
+/**
+ * GaugeCluster is the entry point for viewing the data in a small dashboard format.
+ * Need to add support for changing the sample rate, amongst a LOT of other things. 
+ */
 public class GaugeCluster extends Application {
 	private static ECMInfo ecmInfo;
 	private static GaugeCanvas canvas;
@@ -25,7 +29,7 @@ public class GaugeCluster extends Application {
 
 	public static void main(String[] args) {
 		Thread t = new HammerThread();
-		new PollingThread();
+//		Thread t = new PollingThread();
 		t.start();
 		launch(args);
 	}
