@@ -123,9 +123,9 @@ public class ECMInfo {
 	}
 
 	public void printCurrentData() {
-		System.out.print("\033[5A\r\033[J");
-		System.out.print("TPS:" + this.throttlePosition + "   \r\b\r\b\r");
-		
+//		System.out.print("\033[5A\r\033[J");
+//		System.out.print("TPS:" + this.throttlePosition + "   \r\b\r\b\r");
+		System.out.print("TPS:" + this.throttlePosition);
 	}
 	
 
