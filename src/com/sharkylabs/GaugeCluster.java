@@ -28,8 +28,8 @@ public class GaugeCluster extends Application {
 	private static final int UPDATE_DELAY_MSEC = 50;
 
 	public static void main(String[] args) {
-		Thread t = new HammerThread();
-//		Thread t = new PollingThread();
+//		Thread t = new HammerThread();
+		Thread t = new PollingThread();
 		t.start();
 		launch(args);
 	}
@@ -69,6 +69,7 @@ public class GaugeCluster extends Application {
 	/**
 	 * This thread hammers random TPS data - for testing UI latency.
 	 */
+	@SuppressWarnings("unused")
 	private static class HammerThread extends Thread {
 		String[] lines = { "can0       301   [8]  00 17 05 15 05 44 06 C6",
 				"can0       301   [8]  00 17 05 15 05 44 06 A2",
