@@ -10,6 +10,8 @@ public abstract class AbstractTemperatureSensor extends AbstractPID {
 	public AbstractTemperatureSensor(int value) {
 		this.name = "Temp";
 		this.unit = "*F";
+		
+		// Min and max values determined from looking at the spec-sheet for the temperature sensors used in GM cars. 
 		this.minValue = -40;
 		this.maxValue = 275; 
 		

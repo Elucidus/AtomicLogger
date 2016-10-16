@@ -162,12 +162,7 @@ public class GaugeCluster extends Application {
 
 		public void redraw() {
 			GraphicsContext gc = getGraphicsContext2D();
-			int i = 0;
 			for (IGauge gauge : gauges) {
-				if (gauge == null) { 
-					continue;
-				}
-				System.out.println(i++);
 				gauge.onDraw(gc);
 			}
 		}
