@@ -1,5 +1,8 @@
 package com.sharkylabs;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
 public class ECMInfo {
 	
 	//	  can0       301   [8]  00 17 05 15 05 44 06 C6
@@ -9,13 +12,14 @@ public class ECMInfo {
 	
 	public static final int ECM_PID = 301; 
 	//row 1 data
-	
-	
-	public int throttlePosition;
+	public int ectF; // likely byte[1],byte[2]
+	public int iatF; // likely byte[3],byte[4]
+	public int fuelPressure; // likely byte[6]
+	public int throttlePosition; // byte[7]
 	//row 2 data
 	
 	//row 3 data
-	
+	public int iac; // likely byte[1]
 	//row 4 data
 	
 	
@@ -97,12 +101,21 @@ public class ECMInfo {
 		return dataLine.split("]")[1].trim().split(" ");
 	}
 	
+	
 	private void parseLine0(String dataLine) {
 		if (dataLine == null || dataLine.isEmpty()) { 
 			return; 
 		}
 		String[] s = getDataTokens(dataLine);
+
+		// both IAT and ECT seem to follow y=mx+b, where m = 0.25 and b = (-273)
+		// then convert from C to F
+		ectF = ((Integer.decode("0x" + s[2]+s[1]) / 4) - 273) * 9 / 5 + 32;
+		iatF = ((Integer.decode("0x" + s[4]+s[3]) / 4) - 273) * 9 / 5 + 32;
 		
+		// Fuel pressure appears to be a basic integer representing psi
+		this.fuelPressure = Integer.decode("0x" + s[6]); 
+				
 		//last byte is TPS, range is 0-200, convert to percent
 		this.throttlePosition = Integer.decode("0x" + s[7]) / 2;
 	}
@@ -118,14 +131,20 @@ public class ECMInfo {
 	}
 
 	private void parseLine3(String dataLine) {
-		// TODO Auto-generated method stub
+		if (dataLine == null || dataLine.isEmpty()) { 
+			return; 
+		}
+		String[] s = getDataTokens(dataLine);
 		
+		this.iac = Integer.decode("0x" + s[1]); 
 	}
 
 	public void printCurrentData() {
 //		System.out.print("\033[5A\r\033[J");
 //		System.out.print("TPS:" + this.throttlePosition + "   \r\b\r\b\r");
-		System.out.print("TPS:" + this.throttlePosition);
+		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+		System.out.println(timeStamp +":" + "ECT[" +this.ectF +"F] IAT[" + this.iatF 
+				+ "F] + TPS[" + this.throttlePosition + "%] fuel[" + this.fuelPressure + "psi]");
 	}
 	
 

@@ -131,8 +131,8 @@ public class GaugeCluster extends Application {
 						// TODO move code to kick off thread to stage init
 						lastFiredEvent = currentTime;
 						canvas.fireEvent(new ECMUpdateEvent());
+						ecmInfo.printCurrentData();
 					}
-//					ecmInfo.printCurrentData();
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
