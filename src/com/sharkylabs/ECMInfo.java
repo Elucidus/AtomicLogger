@@ -144,7 +144,8 @@ public class ECMInfo {
 //		System.out.print("TPS:" + this.throttlePosition + "   \r\b\r\b\r");
 		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
 		System.out.println(timeStamp +":" + "ECT[" +this.ectF +"F] IAT[" + this.iatF 
-				+ "F] + TPS[" + this.throttlePosition + "%] fuel[" + this.fuelPressure + "psi]");
+				+ "F] TPS[" + this.throttlePosition + "%] fuel[" + this.fuelPressure + "psi]"
+				+ " IAC[" + this.iac +"steps]");
 	}
 	
 
