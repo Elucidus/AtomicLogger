@@ -147,6 +147,8 @@ public class GaugeCluster extends Application {
 		private BarGraph tpsGraph;
 		private BarGraph ectGraph;
 		private BarGraph iatGraph;
+		private BarGraph fuelPressureGraph;
+		private BarGraph iacGraph;
 		
 		private ArrayList<IGauge> gauges = new ArrayList<>(3);
 		
@@ -155,9 +157,14 @@ public class GaugeCluster extends Application {
 			this.tpsGraph = new BarGraph(10, 10, 100, 25, ecmInfo.tps);
 			this.ectGraph = new BarGraph(10, 40, 100, 25, ecmInfo.ect);
 			this.iatGraph = new BarGraph(10, 70, 100, 25, ecmInfo.iat);
+			this.fuelPressureGraph = new BarGraph(10, 100, 100, 25, ecmInfo.fuelPressure);
+			this.iacGraph = new BarGraph(10, 130, 100, 25, ecmInfo.iac);
+			
 			gauges.add(tpsGraph);
 			gauges.add(ectGraph);
 			gauges.add(iatGraph);
+			gauges.add(fuelPressureGraph);
+			gauges.add(iacGraph);
 		}
 
 		public void redraw() {

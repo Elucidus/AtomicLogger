@@ -15,13 +15,13 @@ public class ECMInfo {
 	//row 0 data can0       301   [8]  00 17 05 15 05 44 06 C6
 	public ECT ect = new ECT(0); // byte[1], byte[2]
 	public IAT iat = new IAT(0); // byte[3], byte[4]
-	public FuelPressure fuelPressure; // likely byte[6] 
+	public FuelPressure fuelPressure = new FuelPressure(0); // likely byte[6] 
 	public TPS tps = new TPS(0); // byte[7
 
 	//row 1 data can0       301   [8]  01 2B 01 00 00 D8 02 00
 	
 	//row 2 data can0       301   [8]  02 5D 00 EE 0D 00 00 00
-	public IAC iac; // likely byte[1]
+	public IAC iac = new IAC(0); // likely byte[1]
 	
 	//row 3 data can0       301   [8]  03 00 00 00 00 00 00 00
 	
@@ -106,7 +106,7 @@ public class ECMInfo {
 		this.iat.setValue(Integer.decode("0x" + s[4] + s[3]));
 		
 		// Fuel pressure appears to be a basic integer representing psi
-		this.fuelPressure = new FuelPressure(Integer.decode("0x" + s[6])); 
+		this.fuelPressure.setValue(Integer.decode("0x" + s[6])); 
 				
 		this.tps.setValue(Integer.decode("0x" + s[7]));
 	}
@@ -127,13 +127,12 @@ public class ECMInfo {
 		}
 		String[] s = getDataTokens(dataLine);
 		
-		this.iac = new IAC(Integer.decode("0x" + s[1])); 
+		this.iac.setValue(Integer.decode("0x" + s[1])); 
 	}
 
 	public void printCurrentData() {
 		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-		System.out.println(timeStamp +":" + this.ect + this.iat + " fuel[" + this.fuelPressure + "psi]"
-				 + this.tps + " IAC[" + this.iac +"steps]");
+		System.out.println(timeStamp +":" + this.ect + this.iat+ this.fuelPressure + this.tps + this.iac);
 	}
 	
 
