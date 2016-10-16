@@ -1,6 +1,10 @@
 package com.sharkylabs.pid;
 
-
+/**
+ * Throttle Position Sensor (TPS), represents how far open the throttle is.
+ * @author Steve
+ *
+ */
 public class TPS extends AbstractPID {
 
 	public TPS(int value) {

@@ -1,5 +1,8 @@
 package com.sharkylabs.pid;
 
+/**
+ * Represents a broadcast engine value. 
+ */
 public abstract class AbstractPID {
 	public String name;
 	public String unit; 
