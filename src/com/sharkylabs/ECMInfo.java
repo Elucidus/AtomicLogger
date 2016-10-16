@@ -3,33 +3,25 @@ package com.sharkylabs;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import com.sharkylabs.pid.ECT;
+import com.sharkylabs.pid.IAT;
+import com.sharkylabs.pid.TPS;
+
 public class ECMInfo {
+	public static final int ECM_PID = 301;
 	
-	//	  can0       301   [8]  00 17 05 15 05 44 06 C6
-	//	  can0       301   [8]  01 2B 01 00 00 D8 02 00
-	//	  can0       301   [8]  02 5D 00 EE 0D 00 00 00
-	//	  can0       301   [8]  03 00 00 00 00 00 00 00
+	//row 0 data can0       301   [8]  00 17 05 15 05 44 06 C6
+	public ECT ect = new ECT(0); // byte[1], byte[2]
+	public IAT iat = new IAT(0); // byte[3], byte[4]
+	public int fuelPressure; // likely byte[6] TODO convert to PID
+	public TPS tps = new TPS(0); // byte[7
+
+	//row 1 data can0       301   [8]  01 2B 01 00 00 D8 02 00
 	
-	public static final int ECM_PID = 301; 
-	//row 1 data
-	public int ectF; // likely byte[1],byte[2]
-	public int iatF; // likely byte[3],byte[4]
-	public int fuelPressure; // likely byte[6]
-	public int throttlePosition; // byte[7]
-	//row 2 data
+	//row 2 data can0       301   [8]  02 5D 00 EE 0D 00 00 00
+	public int iac; // likely byte[1] TODO convert to PID
 	
-	//row 3 data
-	public int iac; // likely byte[1]
-	//row 4 data
-	
-	
-	//can0       301   [8]  00 17 05 15 05 44 06 C6
-	public ECMInfo(String ECMData) {
-		if (ECMData == null || ECMData.isEmpty()) {
-			throw new IllegalArgumentException("Can't initialize an empty ECM info container");
-		}
-		parseData(ECMData);
-	}
+	//row 3 data can0       301   [8]  03 00 00 00 00 00 00 00
 	
 	/** 
 	 * This method parses a single batch of strings of ECM data (rows 0-3), 
@@ -108,16 +100,13 @@ public class ECMInfo {
 		}
 		String[] s = getDataTokens(dataLine);
 
-		// both IAT and ECT seem to follow y=mx+b, where m = 0.25 and b = (-273)
-		// then convert from C to F
-		ectF = ((Integer.decode("0x" + s[2]+s[1]) / 4) - 273) * 9 / 5 + 32;
-		iatF = ((Integer.decode("0x" + s[4]+s[3]) / 4) - 273) * 9 / 5 + 32;
+		this.ect.setValue(Integer.decode("0x" + s[2] + s[1]));
+		this.iat.setValue(Integer.decode("0x" + s[4] + s[3]));
 		
 		// Fuel pressure appears to be a basic integer representing psi
 		this.fuelPressure = Integer.decode("0x" + s[6]); 
 				
-		//last byte is TPS, range is 0-200, convert to percent
-		this.throttlePosition = Integer.decode("0x" + s[7]) / 2;
+		this.tps.setValue(Integer.decode("0x" + s[7]));
 	}
 
 	private void parseLine1(String dataLine) {
@@ -140,12 +129,9 @@ public class ECMInfo {
 	}
 
 	public void printCurrentData() {
-//		System.out.print("\033[5A\r\033[J");
-//		System.out.print("TPS:" + this.throttlePosition + "   \r\b\r\b\r");
 		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-		System.out.println(timeStamp +":" + "ECT[" +this.ectF +"F] IAT[" + this.iatF 
-				+ "F] TPS[" + this.throttlePosition + "%] fuel[" + this.fuelPressure + "psi]"
-				+ " IAC[" + this.iac +"steps]");
+		System.out.println(timeStamp +":" + this.ect + this.iat + " fuel[" + this.fuelPressure + "psi]"
+				 + this.tps + " IAC[" + this.iac +"steps]");
 	}
 	
 

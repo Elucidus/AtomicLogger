@@ -12,13 +12,9 @@ public class CANReader {
 		try {
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 			String line;
-			ECMInfo ecmInfo = null;
+			ECMInfo ecmInfo = new ECMInfo();
 			while ((line = br.readLine()) != null) {
-				if (ecmInfo == null) {
-					ecmInfo = new ECMInfo(line);
-				} else {
-					ecmInfo.parseData(line);
-				}
+				ecmInfo.parseData(line);
 				ecmInfo.printCurrentData();
 			}
 		} catch (Exception e) {

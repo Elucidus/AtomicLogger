@@ -2,6 +2,10 @@ package com.sharkylabs;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+
+import com.sharkylabs.ui.BarGraph;
+import com.sharkylabs.ui.IGauge;
 
 import javafx.application.Application;
 import javafx.event.Event;
@@ -48,8 +52,8 @@ public class GaugeCluster extends Application {
 	@Override
 	public void start(Stage stage) throws Exception {
 		Group root = new Group();
-		Scene scene = new Scene(root, 300, 300, Color.LIGHTGREY);
-		canvas = new GaugeCanvas(640, 480);
+		Scene scene = new Scene(root, 640, 480, Color.LIGHTGREY);
+		canvas = new GaugeCanvas(640, 480, ecmInfo);
 		canvas.addEventHandler(ECMUpdateEvent.EVENT_TYPE_ECM_UPDATE,
 				new EventHandler<ECMUpdateEvent>() {
 
@@ -83,12 +87,12 @@ public class GaugeCluster extends Application {
 		public void run() {
 			int currentLine = 0;
 			long lastFiredEvent = 0;
+			
+			if (ecmInfo == null) {
+				ecmInfo = new ECMInfo();
+			} 
 			while (true) {
-				if (ecmInfo == null) {
-					ecmInfo = new ECMInfo(lines[currentLine]);
-				} else {
-					ecmInfo.parseData(lines[currentLine]);
-				}
+				ecmInfo.parseData(lines[currentLine]);
 				currentLine++;
 				if (currentLine == lines.length) {
 					currentLine = 0;
@@ -120,12 +124,11 @@ public class GaugeCluster extends Application {
 				BufferedReader br = new BufferedReader(new InputStreamReader(
 						System.in));
 				String line;
+				if (ecmInfo == null) {
+					ecmInfo = new ECMInfo();
+				} 
 				while ((line = br.readLine()) != null) {
-					if (ecmInfo == null) {
-						ecmInfo = new ECMInfo(line);
-					} else {
-						ecmInfo.parseData(line);
-					}
+					ecmInfo.parseData(line);
 					long currentTime = System.currentTimeMillis();
 					if (canvas != null && ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC)) {
 						// TODO move code to kick off thread to stage init
@@ -141,18 +144,31 @@ public class GaugeCluster extends Application {
 	}
 
 	private class GaugeCanvas extends Canvas {
-		public GaugeCanvas(int width, int height) {
+		private BarGraph tpsGraph;
+		private BarGraph ectGraph;
+		private BarGraph iatGraph;
+		
+		private ArrayList<IGauge> gauges = new ArrayList<>(3);
+		
+		public GaugeCanvas(int width, int height, ECMInfo ecmInfo) {
 			super(width, height);
+			this.tpsGraph = new BarGraph(10, 10, 100, 25, ecmInfo.tps);
+			this.ectGraph = new BarGraph(10, 40, 100, 25, ecmInfo.ect);
+			this.iatGraph = new BarGraph(10, 70, 100, 25, ecmInfo.iat);
+			gauges.add(tpsGraph);
+			gauges.add(ectGraph);
+			gauges.add(iatGraph);
 		}
 
 		public void redraw() {
 			GraphicsContext gc = getGraphicsContext2D();
-			gc.setFill(Color.BLACK);
-			gc.fillRect(10, 10, 100, 25);
-
-			if (ecmInfo != null) {
-				gc.setFill(Color.RED);
-				gc.fillRect(10, 10, ecmInfo.throttlePosition, 25);
+			int i = 0;
+			for (IGauge gauge : gauges) {
+				if (gauge == null) { 
+					continue;
+				}
+				System.out.println(i++);
+				gauge.onDraw(gc);
 			}
 		}
 	}
