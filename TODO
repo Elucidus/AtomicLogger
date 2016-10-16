@@ -1,6 +1,7 @@
-ToDo
+T
 * Buffer input until all 4 lines are available? May not be necessary since we're timebounding the broadcasts
 * Generic class for drawing bar graphs(done), tach
 * BarGraph improvements: 
 ** Can make bar graph be hori or vertical
 ** Need to figure out how to draw range for negative numbers 
+*** One theory: anchor at 0 and then fill to left and right 
