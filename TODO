@@ -9,4 +9,5 @@
 * FPR and IAC guesses were wrong.
 * Switch from millions of canvases to a more appropriate container architecture in JavaFX
 * Need to add demo mode for displays (and turn demo code back on for tach, using demo mode
-* Minimize usage of Strings - undoutedly churning a lot of memory.)
+* Minimize usage of Strings - undoutedly churning a lot of memory.
+** This could also be why the performance is bad. Just realized that we're blocking on input when polling as that whole process is single threaded. Need to look at memory usage (test device could be GC'ing a lot) as well as potentially dropping inbound data.)
