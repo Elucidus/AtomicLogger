@@ -4,10 +4,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import com.sharkylabs.ui.BarGraph;
-import com.sharkylabs.ui.IGauge;
-import com.sharkylabs.ui.Tachometer;
-
 import javafx.application.Application;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -19,6 +15,10 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
+import com.sharkylabs.ui.BarGraph;
+import com.sharkylabs.ui.IGauge;
+import com.sharkylabs.ui.Tachometer;
+
 /**
  * GaugeCluster is the entry point for viewing the data in a small dashboard format.
  * Need to add support for changing the sample rate, amongst a LOT of other things. 
@@ -27,13 +27,25 @@ public class GaugeCluster extends Application {
 	private static ECMInfo ecmInfo;
 	private static GaugeCanvas canvas;
 	
+	// Streams for demo mode
+	private static final int DATA_INPUT_SIZE = 10000;
+	private static ArrayList<String> dataInput;
+
 	/**
 	 * The update delay in ms - controls how frequently to fire UX update events.
 	 */
 	private static final int UPDATE_DELAY_MSEC = 20;
+	private static final boolean DEMO_MODE = false;
 
 	public static void main(String[] args) {
-//		Thread t = new HammerThread();
+		ecmInfo = new ECMInfo();
+		
+		if (DEMO_MODE) {
+			dataInput = new ArrayList<>(DATA_INPUT_SIZE);
+			Thread hT = new HammerThread();
+			hT.start();
+		}
+		
 		Thread t = new PollingThread();
 		t.start();
 		launch(args);
@@ -77,23 +89,18 @@ public class GaugeCluster extends Application {
 	 */
 	@SuppressWarnings("unused")
 	private static class HammerThread extends Thread {
-		String[] lines = { "can0       301   [8]  00 17 05 15 05 44 06 C6",
-				"can0       301   [8]  00 17 05 15 05 44 06 A2",
-				"can0       301   [8]  00 17 05 15 05 44 06 20",
-				"can0       301   [8]  00 17 05 15 05 44 06 0",
-				"can0       301   [8]  00 17 05 15 05 44 06 20",
-				"can0       301   [8]  00 17 05 15 05 44 06 80",
-				"can0       301   [8]  00 17 05 15 05 44 06 B2", };
+		String[] lines = { "can0       301   [8]  00 17 05 15 05 44 06 C6\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n",
+				"can0       301   [8]  00 17 05 15 05 44 06 A2\n" + "  can0       301   [8]  01 2B 01 EE 02 D8 02 00\n",
+				"can0       301   [8]  00 17 05 15 05 44 06 20\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n",
+				"can0       301   [8]  00 17 05 15 05 44 06 00\n" + "  can0       301   [8]  01 2B 01 EE 02 D8 02 00\n",
+				"can0       301   [8]  00 17 05 15 05 44 06 20\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n",
+				"can0       301   [8]  00 17 05 15 05 44 06 80\n" + "  can0       301   [8]  01 2B 01 EE 02 D8 02 00\n",
+				"can0       301   [8]  00 17 05 15 05 44 06 B2\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n", };
 
 		@Override
 		public void run() {
 			int currentLine = 0;
 			long lastFiredEvent = 0;
-			
-			if (ecmInfo == null) {
-				ecmInfo = new ECMInfo();
-			} 
-			
 			try {
 				//it takes a small amount of time for the UI to init - make sure not to hammer the UI before it's done initializing 
 				sleep(1000);
@@ -102,22 +109,22 @@ public class GaugeCluster extends Application {
 			}
 			
 			while (true) {
-				ecmInfo.parseData(lines[currentLine]);
 				currentLine++;
 				if (currentLine == lines.length) {
 					currentLine = 0;
 				}
-				long currentTime = System.currentTimeMillis();
-				if (canvas != null && ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC)) {
-					// TODO move code to kick off thread to stage init
-					lastFiredEvent = currentTime;
-					canvas.fireEvent(new ECMUpdateEvent());
-				}
-				try {
-					sleep(UPDATE_DELAY_MSEC);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				synchronized (dataInput) {
+					if (dataInput.size() == DATA_INPUT_SIZE) {
+						try {
+							System.out.println("Buffer overrun");
+							sleep(5);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						continue;
+					} else {
+						dataInput.add(lines[currentLine]);
+					}	
 				}
 			}
 		}
@@ -131,20 +138,41 @@ public class GaugeCluster extends Application {
 		public void run() {
 			try {
 				long lastFiredEvent = 0;
-				BufferedReader br = new BufferedReader(new InputStreamReader(
-						System.in));
-				String line;
-				if (ecmInfo == null) {
-					ecmInfo = new ECMInfo();
-				} 
-				while ((line = br.readLine()) != null) {
-					ecmInfo.parseData(line);
-					long currentTime = System.currentTimeMillis();
-					if (canvas != null && ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC)) {
-						// TODO move code to kick off thread to stage init
-						lastFiredEvent = currentTime;
-						canvas.fireEvent(new ECMUpdateEvent());
-						ecmInfo.printCurrentData();
+				if (DEMO_MODE) {
+					while (true) {
+						String line = null;
+						synchronized (dataInput) {
+							if (GaugeCluster.dataInput.isEmpty()) {
+								System.out.println("Buffer underrun");
+								sleep(5);
+								continue;
+							}
+							line = dataInput.get(0);
+							GaugeCluster.dataInput.remove(line);	
+						}
+						if (line == null) throw new NullPointerException("Demo failed, NPE"); 
+						ecmInfo.parseData(line);
+						long currentTime = System.currentTimeMillis();
+						if (canvas != null && ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC)) {
+							// TODO move code to kick off thread to stage init
+							lastFiredEvent = currentTime;
+							canvas.fireEvent(new ECMUpdateEvent());
+							ecmInfo.printCurrentData();
+						}
+					}
+				} else {
+					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+					String line = null;
+					
+					while ((line = br.readLine()) != null) {
+						ecmInfo.parseData(line);
+						long currentTime = System.currentTimeMillis();
+						if (canvas != null && ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC)) {
+							// TODO move code to kick off thread to stage init
+							lastFiredEvent = currentTime;
+							canvas.fireEvent(new ECMUpdateEvent());
+							ecmInfo.printCurrentData();
+						}
 					}
 				}
 			} catch (Exception e) {
