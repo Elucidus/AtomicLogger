@@ -8,4 +8,5 @@
 * What's going on with TPS when car is running?
 * FPR and IAC guesses were wrong.
 * Switch from millions of canvases to a more appropriate container architecture in JavaFX
-* Need to add demo mode for displays (and turn demo code back on for tach, using demo mode)
+* Need to add demo mode for displays (and turn demo code back on for tach, using demo mode
+* Minimize usage of Strings - undoutedly churning a lot of memory.)
