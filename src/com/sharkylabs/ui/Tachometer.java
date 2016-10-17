@@ -14,6 +14,8 @@ public class Tachometer implements IGauge {
 	private double xAnchor;
 	private double yAnchor;
 	
+	private static final double MAX_RPM = 8000;
+	
 	// data fields
 	private AbstractPID pid;
 
@@ -29,35 +31,34 @@ public class Tachometer implements IGauge {
 		this.xAnchor = xAnchor;
 		this.yAnchor = yAnchor;
 		this.pid = pid;
-		String currdir = System.getProperty("user.dir");
-		
-		//TODO: support desktop working dir (and linux, use File.PathSeparator here), as well as JAR
-		this.tachBG = new Image("file:" + currdir + "\\res\\tachometerBG.png");
-		this.tachNeedle = new Image("file:" + currdir + "\\res\\tachometerNeedle.png");
-		
+
+		this.tachBG = new Image("tachometerBG.png");
+		this.tachNeedle = new Image("tachometerNeedle.png");	
+
 		this.root = root;
 		needleCanvas = new Canvas(640, 480); //TODO: abstract canvas size
 	}
 	
-	double min = 0.0, max = 8000.0; 
-	double currentRPM = 0;
-	boolean accelerating = true;
+//	double min = 0.0, max = 8000.0; 
+//	double currentRPM = 0;
+//	boolean accelerating = true;
 	@Override
 	public void onDraw(GraphicsContext gc) {
 		gc.drawImage(this.tachBG, this.xAnchor, this.yAnchor);
 		needleCanvas.getGraphicsContext2D().clearRect(0, 0, 640, 480);
 
 		// range for the image, 0 = -144, redline = 144
-		double rpmAngle = (currentRPM / max) * 288 - 144;
-		if (accelerating) {
-			currentRPM += 20;
-		} else {
-			currentRPM -= 20;
-		}
-		if (currentRPM >= 8000 || currentRPM <= 0) {
-//			accelerating = !accelerating;
-			currentRPM = 4500;
-		}
+		double rpmAngle = (pid.currentValue / MAX_RPM) * 288 - 144;
+//		double rpmAngle = (currentRPM / max) * 288 - 144;
+//		if (accelerating) {
+//			currentRPM += 20;
+//		} else {
+//			currentRPM -= 20;
+//		}
+//		if (currentRPM >= 8000 || currentRPM <= 0) {
+////			accelerating = !accelerating;
+//			currentRPM = 4500;
+//		}
 		drawRotatedImage(needleCanvas.getGraphicsContext2D(), this.tachNeedle, rpmAngle, this.xAnchor, this.yAnchor);
 	}
 

@@ -172,7 +172,7 @@ public class GaugeCluster extends Application {
 			this.iatGraph = new BarGraph(10, 70, 100, 25, ecmInfo.iat);
 			this.fuelPressureGraph = new BarGraph(10, 100, 100, 25, ecmInfo.fuelPressure);
 			this.iacGraph = new BarGraph(10, 130, 100, 25, ecmInfo.iac);
-			this.tach = new Tachometer(root, 150, 10, null);
+			this.tach = new Tachometer(root, 150, 10, ecmInfo.rpm);
 			
 			gauges.add(tpsGraph);
 			gauges.add(ectGraph);

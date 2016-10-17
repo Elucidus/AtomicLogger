@@ -1,7 +1,10 @@
-T
 * Buffer input until all 4 lines are available? May not be necessary since we're timebounding the broadcasts
-* Generic class for drawing bar graphs(done), tach
 * BarGraph improvements: 
 ** Can make bar graph be hori or vertical
 ** Need to figure out how to draw range for negative numbers 
-*** One theory: anchor at 0 and then fill to left and right 
+*** Use same logic as tach - determine where value is as portion of total range then scale size.
+* Need to add labels / readout to all graphics
+* Tach is ugly :)
+* What's going on with TPS when car is running?
+* FPR and IAC guesses were wrong.
+* Switch from millions of canvases to a more appropriate container architecture in JavaFX
