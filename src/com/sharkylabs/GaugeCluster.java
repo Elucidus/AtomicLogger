@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 import com.sharkylabs.ui.BarGraph;
 import com.sharkylabs.ui.IGauge;
+import com.sharkylabs.ui.Tachometer;
 
 import javafx.application.Application;
 import javafx.event.Event;
@@ -29,7 +30,7 @@ public class GaugeCluster extends Application {
 	/**
 	 * The update delay in ms - controls how frequently to fire UX update events.
 	 */
-	private static final int UPDATE_DELAY_MSEC = 50;
+	private static final int UPDATE_DELAY_MSEC = 20;
 
 	public static void main(String[] args) {
 //		Thread t = new HammerThread();
@@ -53,7 +54,7 @@ public class GaugeCluster extends Application {
 	public void start(Stage stage) throws Exception {
 		Group root = new Group();
 		Scene scene = new Scene(root, 640, 480, Color.LIGHTGREY);
-		canvas = new GaugeCanvas(640, 480, ecmInfo);
+		canvas = new GaugeCanvas(640, 480, root, ecmInfo);
 		canvas.addEventHandler(ECMUpdateEvent.EVENT_TYPE_ECM_UPDATE,
 				new EventHandler<ECMUpdateEvent>() {
 
@@ -66,6 +67,7 @@ public class GaugeCluster extends Application {
 		canvas.redraw();
 
 		root.getChildren().add(canvas);
+		canvas.doPostInit();
 		stage.setScene(scene);
 		stage.show();
 	}
@@ -91,6 +93,14 @@ public class GaugeCluster extends Application {
 			if (ecmInfo == null) {
 				ecmInfo = new ECMInfo();
 			} 
+			
+			try {
+				//it takes a small amount of time for the UI to init - make sure not to hammer the UI before it's done initializing 
+				sleep(1000);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
+			
 			while (true) {
 				ecmInfo.parseData(lines[currentLine]);
 				currentLine++;
@@ -144,27 +154,38 @@ public class GaugeCluster extends Application {
 	}
 
 	private class GaugeCanvas extends Canvas {
+		//needed to add custom canvases for transforms 
 		private BarGraph tpsGraph;
 		private BarGraph ectGraph;
 		private BarGraph iatGraph;
 		private BarGraph fuelPressureGraph;
 		private BarGraph iacGraph;
 		
+		private Tachometer tach;
+		
 		private ArrayList<IGauge> gauges = new ArrayList<>(3);
 		
-		public GaugeCanvas(int width, int height, ECMInfo ecmInfo) {
+		public GaugeCanvas(int width, int height, Group root, ECMInfo ecmInfo) {
 			super(width, height);
 			this.tpsGraph = new BarGraph(10, 10, 100, 25, ecmInfo.tps);
 			this.ectGraph = new BarGraph(10, 40, 100, 25, ecmInfo.ect);
 			this.iatGraph = new BarGraph(10, 70, 100, 25, ecmInfo.iat);
 			this.fuelPressureGraph = new BarGraph(10, 100, 100, 25, ecmInfo.fuelPressure);
 			this.iacGraph = new BarGraph(10, 130, 100, 25, ecmInfo.iac);
+			this.tach = new Tachometer(root, 150, 10, null);
 			
 			gauges.add(tpsGraph);
 			gauges.add(ectGraph);
 			gauges.add(iatGraph);
 			gauges.add(fuelPressureGraph);
 			gauges.add(iacGraph);
+			gauges.add(tach);
+		}
+
+		public void doPostInit() {
+			for (IGauge gauge : gauges) {
+				gauge.onPostInit();;
+			}
 		}
 
 		public void redraw() {

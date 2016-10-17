@@ -4,6 +4,11 @@ import javafx.scene.canvas.GraphicsContext;
 
 public interface IGauge {
 	/**
+	 * Post init methods should be called here. 
+	 */
+	public void onPostInit();
+	
+	/**
 	 * Called when the object has to be drawn.
 	 * @param gc GraphicsContext to draw to. 
 	 */

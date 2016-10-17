@@ -1,7 +1,6 @@
 package com.sharkylabs.ui;
 
 import com.sharkylabs.pid.AbstractPID;
-import com.sharkylabs.pid.TPS;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -44,6 +43,13 @@ public class BarGraph implements IGauge {
 	@Override
 	public void onRemove(GraphicsContext gc) {
 		// TODO Used to clear out the drawing left by the gauge objects when a gauge is removed from screen. 
+	}
+
+
+
+	@Override
+	public void onPostInit() {
+		// Do nothing. 
 	}
 	
 }
