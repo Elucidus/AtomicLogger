@@ -14,6 +14,17 @@ import com.sharkylabs.util.HexUtils;
 public class ECMInfo {
 	public static final int ECM_PID = 301;
 	
+	/**
+	 * Stores latest ECM frames.
+	 */
+	private char[][] buffer;
+	
+	/**
+	 * Buffer used to grab lines of ECM data frames during parsing.
+	 * Stored at class level to decrease churn. 
+	 */
+	private char[] dataRow = new char[16];
+	
 	//row 0 data can0       301   [8]  00 17 05 15 05 44 06 C6
 	public ECT ect = new ECT(0); // byte[1], byte[2]
 	public IAT iat = new IAT(0); // byte[3], byte[4]
@@ -26,6 +37,17 @@ public class ECMInfo {
 	public IAC iac = new IAC(0); // likely byte[1] - doesn't seem correct
 	
 	//row 3 data can0       301   [8]  03 00 00 00 00 00 00 00
+	
+	public ECMInfo() {
+		// initialize buffer and data rows
+		this.buffer = new char[4][];
+		for (int i = 0; i < this.buffer.length; i++) {
+			this.buffer[i] = new char[16];
+			for (int j = 0; j < this.buffer[i].length; j++) {
+				this.buffer[i][j] = '0';
+			}
+		}
+	}
 	
 	/** 
 	 * This method parses a single batch of char arrays of ECM data (rows 0-3), 
@@ -40,7 +62,6 @@ public class ECMInfo {
 		}
 		
 		char[] ecmDataBytes = ecmData.toCharArray();
-		char[][] orderedData = new char[4][];
 
 		//sort data into ordered char arrays
 		for (int i = 0; i< ecmDataBytes.length; i++) {
@@ -48,7 +69,7 @@ public class ECMInfo {
 				i++;
 				//start reading out can data for given row
 				int bytesRead = 0;
-				char[] dataRow = new char[16];
+				
 				while (bytesRead != dataRow.length && i < ecmDataBytes.length) {
 					if (Character.isLetterOrDigit(ecmDataBytes[i])) {
 						dataRow[bytesRead] = ecmDataBytes[i];
@@ -58,17 +79,17 @@ public class ECMInfo {
 				}
 				if (bytesRead == dataRow.length) {
 					//decode first pair and assign to ordered lines
-					int rowId = HexUtils.hexCharArrayToInt(dataRow, 0, 2);
+					int rowId = HexUtils.hexCharArrayToInt(dataRow, 0, 1);
 					if (rowId < 0 || rowId > 3) { 
 						System.err.println("ECM data row ID out of bounds:" + rowId);
 						continue;
 					}
-					orderedData[rowId] = dataRow;
+					System.arraycopy(dataRow, 0, this.buffer[rowId], 0, dataRow.length);
 				}
 			} 
 		}
 		
-		parseData(orderedData);
+		parseData();
 	}
 
 	/**
@@ -85,11 +106,11 @@ public class ECMInfo {
 	 * may be null, but otherwise lines must be complete. Updates the object.
 	 * @param ecmDataLines
 	 */
-	private void parseData(char[][] ecmDataLines) {
-		parseLine0(ecmDataLines[0]);
-		parseLine1(ecmDataLines[1]);
-		parseLine2(ecmDataLines[2]);
-		parseLine3(ecmDataLines[3]);
+	private void parseData() {
+		parseLine0();
+		parseLine1();
+		parseLine2();
+		parseLine3();
 	}
 
 	protected static String[] getDataTokens(String dataLine) {
@@ -97,41 +118,29 @@ public class ECMInfo {
 	}
 	
 	
-	private void parseLine0(char[] dataLine) {
-		if (dataLine == null) { 
-			return; 
-		}
-
-		this.ect.setValue(HexUtils.hexCharArrayToInt(dataLine, 2, 5));
-		this.iat.setValue(HexUtils.hexCharArrayToInt(dataLine, 6, 9));
+	private void parseLine0() {
+		this.ect.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 2, 5));
+		this.iat.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 6, 9));
 		
 		// Fuel pressure appears to be a basic integer representing psi
 		// TODO looks wrong though. 
-		this.fuelPressure.setValue(HexUtils.hexCharArrayToInt(dataLine, 12, 13)); 
+		this.fuelPressure.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 12, 13)); 
 				
-		this.tps.setValue(HexUtils.hexCharArrayToInt(dataLine, 14, 15));
+		this.tps.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 14, 15));
 	}
 
-	private void parseLine1(char[] dataLine) {
-		if (dataLine == null) { 
-			return; 
-		}
-		
-		this.rpm.setValue(HexUtils.hexCharArrayToInt(dataLine, 6, 9));//Integer.decode("0x" + s[4] + s[3])); 
+	private void parseLine1() {
+		this.rpm.setValue(HexUtils.hexCharArrayToInt(this.buffer[1], 6, 9));
 	}
 
-	private void parseLine2(char[] dataLine) {
+	private void parseLine2() {
 		// TODO Auto-generated method stub
 		
 	}
 
-	private void parseLine3(char[] dataLine) {
-		if (dataLine == null) { 
-			return; 
-		}
-		
+	private void parseLine3() {
 		//TODO looks wrong
-		this.iac.setValue(HexUtils.hexCharArrayToInt(dataLine, 2, 3)); 
+		this.iac.setValue(HexUtils.hexCharArrayToInt(this.buffer[3], 2, 3)); 
 	}
 
 	public void printCurrentData() {

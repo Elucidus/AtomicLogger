@@ -24,7 +24,7 @@ public class HexUtils {
 			throw new IllegalArgumentException(
 					"invalid hex array");
 		}
-		if (hex.length % 2 != 0) {
+		if ((end-begin+1) % 2 != 0) {
 			throw new IllegalArgumentException(
 					"Currently only supports longform.");
 		}
