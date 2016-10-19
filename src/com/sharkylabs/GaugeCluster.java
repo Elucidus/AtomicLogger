@@ -34,8 +34,8 @@ public class GaugeCluster extends Application {
 	/**
 	 * The update delay in ms - controls how frequently to fire UX update events.
 	 */
-	private static int UPDATE_DELAY_MSEC = 20;
-	private static final boolean DEMO_MODE = false;
+	private static int updateDelayMsec = 20;
+	private static boolean demoMode = false;
 	
 	// used for performance evaluation
 	private static long START_TIME_MSEC;
@@ -51,10 +51,14 @@ public class GaugeCluster extends Application {
 				System.out.println("System info:" + com.sun.prism.GraphicsPipeline.getPipeline().getClass().getName());
 				System.exit(0);
 			}
-			UPDATE_DELAY_MSEC = Integer.parseInt(args[0]);
+			updateDelayMsec = Integer.parseInt(args[0]);
+			System.out.println("new update delay:" + updateDelayMsec);
+			if (args.length >= 2 && args[1].equals("demo")) {
+				demoMode = true; 
+			}
 		}
 		
-		if (DEMO_MODE || (args.length >= 2 && args[2].equals("demo"))) {
+		if (demoMode) {
 			START_TIME_MSEC = System.currentTimeMillis();
 			dataInput = new ArrayList<>(DATA_INPUT_SIZE);
 			Thread hT = new HammerThread();
@@ -155,10 +159,10 @@ public class GaugeCluster extends Application {
 		public void run() {
 			try {
 				long lastFiredEvent = 0;
-				if (DEMO_MODE) {
+				if (demoMode) {
 					while (true) {
 						long currentTime = System.currentTimeMillis();
-						if ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC) {
+						if ((currentTime - lastFiredEvent) > updateDelayMsec) {
 							//read 4 lines
 							String line = null;
 							synchronized (dataInput) {
@@ -187,7 +191,7 @@ public class GaugeCluster extends Application {
 					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 					while (true) {
 						long currentTime = System.currentTimeMillis();
-						if ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC) {
+						if ((currentTime - lastFiredEvent) > updateDelayMsec) {
 							// reset the counter
 							lastFiredEvent = currentTime;
 							// get a full frame of data
