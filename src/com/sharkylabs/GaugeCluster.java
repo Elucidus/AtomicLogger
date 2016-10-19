@@ -34,13 +34,28 @@ public class GaugeCluster extends Application {
 	/**
 	 * The update delay in ms - controls how frequently to fire UX update events.
 	 */
-	private static final int UPDATE_DELAY_MSEC = 20;
+	private static int UPDATE_DELAY_MSEC = 20;
 	private static final boolean DEMO_MODE = false;
+	
+	// used for performance evaluation
+	private static long START_TIME_MSEC;
+	private static long OVERRUN_COUNT = 0, UNDERRUN_COUNT = 0;
 
 	public static void main(String[] args) {
 		ecmInfo = new ECMInfo();
 		
-		if (DEMO_MODE) {
+		if (args.length >= 1) {
+			if (args[0].equals("-?")) {
+				System.out.println("Usage: java com.sharkylabs.GaugeCluster <polling time in msec> <demo>"
+						+ "\nArguments are optional but you must specify a polling time to run \"demo\"");
+				System.out.println("System info:" + com.sun.prism.GraphicsPipeline.getPipeline().getClass().getName());
+				System.exit(0);
+			}
+			UPDATE_DELAY_MSEC = Integer.parseInt(args[0]);
+		}
+		
+		if (DEMO_MODE || (args.length >= 2 && args[2].equals("demo"))) {
+			START_TIME_MSEC = System.currentTimeMillis();
 			dataInput = new ArrayList<>(DATA_INPUT_SIZE);
 			Thread hT = new HammerThread();
 			hT.start();
@@ -101,6 +116,8 @@ public class GaugeCluster extends Application {
 		public void run() {
 			int currentLine = 0;
 			long lastFiredEvent = 0;
+			boolean pastFirstOverrun = false;
+			
 			try {
 				//it takes a small amount of time for the UI to init - make sure not to hammer the UI before it's done initializing 
 				sleep(1000);
@@ -115,12 +132,12 @@ public class GaugeCluster extends Application {
 				}
 				synchronized (dataInput) {
 					if (dataInput.size() == DATA_INPUT_SIZE) {
-						try {
-							System.out.println("Buffer overrun");
-							sleep(5);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
+						if (!pastFirstOverrun) {
+							System.out.println("First overrun after: " + (System.currentTimeMillis() - START_TIME_MSEC));
+							pastFirstOverrun = true;
 						}
+						
+						System.out.println("OR:" + (++OVERRUN_COUNT - UNDERRUN_COUNT));
 						continue;
 					} else {
 						dataInput.add(lines[currentLine]);
@@ -140,39 +157,54 @@ public class GaugeCluster extends Application {
 				long lastFiredEvent = 0;
 				if (DEMO_MODE) {
 					while (true) {
-						String line = null;
-						synchronized (dataInput) {
-							if (GaugeCluster.dataInput.isEmpty()) {
-								System.out.println("Buffer underrun");
-								sleep(5);
-								continue;
-							}
-							line = dataInput.get(0);
-							GaugeCluster.dataInput.remove(line);	
-						}
-						if (line == null) throw new NullPointerException("Demo failed, NPE"); 
-						ecmInfo.parseData(line);
 						long currentTime = System.currentTimeMillis();
-						if (canvas != null && ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC)) {
-							// TODO move code to kick off thread to stage init
-							lastFiredEvent = currentTime;
-							canvas.fireEvent(new ECMUpdateEvent());
-							ecmInfo.printCurrentData();
+						if ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC) {
+							//read 4 lines
+							String line = null;
+							synchronized (dataInput) {
+								if (GaugeCluster.dataInput.size() < 4) {
+									System.out.println("UR:" + (OVERRUN_COUNT - ++UNDERRUN_COUNT));
+									continue;
+								}
+								line = dataInput.remove(0) + dataInput.remove(0) + dataInput.remove(0) + dataInput.remove(0);
+							}
+							if (canvas != null)  {
+								lastFiredEvent = currentTime;
+								ecmInfo.parseData(line);
+								canvas.fireEvent(new ECMUpdateEvent());
+								ecmInfo.printCurrentData();
+							}
+						} else {
+							//dump up to 4 lines
+							synchronized (dataInput) {
+								for (int i = 0; i < 5000 && i < dataInput.size(); i++) {
+									dataInput.remove(0);
+								}
+							}
 						}
 					}
 				} else {
 					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-					String line = null;
-					
-					while ((line = br.readLine()) != null) {
-						ecmInfo.parseData(line);
+					while (true) {
 						long currentTime = System.currentTimeMillis();
-						if (canvas != null && ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC)) {
-							// TODO move code to kick off thread to stage init
+						if ((currentTime - lastFiredEvent) > UPDATE_DELAY_MSEC) {
+							// reset the counter
 							lastFiredEvent = currentTime;
-							canvas.fireEvent(new ECMUpdateEvent());
-							ecmInfo.printCurrentData();
+							// get a full frame of data
+							String line = br.readLine() + "\n" + br.readLine() + "\n"
+									 + br.readLine() + "\n"  + br.readLine();
+							ecmInfo.parseData(line);
+							if (canvas != null)  {
+								// TODO move code to kick off thread to stage init
+								canvas.fireEvent(new ECMUpdateEvent());
+								ecmInfo.printCurrentData();
+							}
+						} else {
+							// dump data
+							br.readLine();
 						}
+						
+						
 					}
 				}
 			} catch (Exception e) {

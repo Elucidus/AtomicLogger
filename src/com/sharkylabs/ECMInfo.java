@@ -9,6 +9,7 @@ import com.sharkylabs.pid.IAC;
 import com.sharkylabs.pid.IAT;
 import com.sharkylabs.pid.RPM;
 import com.sharkylabs.pid.TPS;
+import com.sharkylabs.util.HexUtils;
 
 public class ECMInfo {
 	public static final int ECM_PID = 301;
@@ -27,7 +28,7 @@ public class ECMInfo {
 	//row 3 data can0       301   [8]  03 00 00 00 00 00 00 00
 	
 	/** 
-	 * This method parses a single batch of strings of ECM data (rows 0-3), 
+	 * This method parses a single batch of char arrays of ECM data (rows 0-3), 
 	 * it may be a subset but it has to be wholly formed lines. Elements of the data 
 	 * object will be updated.  
 	 * @param ecmDataTrim
@@ -37,38 +38,37 @@ public class ECMInfo {
 			System.err.println("parseData(Str): invalid input");
 			return;
 		}
-		String ecmDataTrim = ecmData.trim();
-		String[] lines = ecmDataTrim.split("\n");
-		String[] orderedLines = new String[4];
 		
-		// parse all the lines in the blob
-		// note that the latest data will clobber the earliest data if multiple lines with the
-		// same line ID are in the blob. 
-		for (String line : lines) {
-			String[] lineData = getLineData(line);
-			Integer lineID = Integer.decode("0x" + lineData[0]);
-			if (lineID < 0 || lineID > 3) { 
-				System.err.println("ECM data row ID out of bounds:" + lineID);
-				continue;
-			}
-			
-			orderedLines[lineID] = line;
-		}
-		if (allLinesNull(orderedLines)) {
-			System.err.println("No ECM lines found in input");
-			return;
-		}
-		
-		parseData(orderedLines);
-	}
+		char[] ecmDataBytes = ecmData.toCharArray();
+		char[][] orderedData = new char[4][];
 
-	private boolean allLinesNull(String[] orderedLines) {
-		for (String line : orderedLines) {
-			if (line != null) {
-				return false;
-			}
+		//sort data into ordered char arrays
+		for (int i = 0; i< ecmDataBytes.length; i++) {
+			if (ecmDataBytes[i] == ']') {
+				i++;
+				//start reading out can data for given row
+				int bytesRead = 0;
+				char[] dataRow = new char[16];
+				while (bytesRead != dataRow.length && i < ecmDataBytes.length) {
+					if (Character.isLetterOrDigit(ecmDataBytes[i])) {
+						dataRow[bytesRead] = ecmDataBytes[i];
+						bytesRead++;
+					}
+					i++;
+				}
+				if (bytesRead == dataRow.length) {
+					//decode first pair and assign to ordered lines
+					int rowId = HexUtils.hexCharArrayToInt(dataRow, 0, 2);
+					if (rowId < 0 || rowId > 3) { 
+						System.err.println("ECM data row ID out of bounds:" + rowId);
+						continue;
+					}
+					orderedData[rowId] = dataRow;
+				}
+			} 
 		}
- 		return true;
+		
+		parseData(orderedData);
 	}
 
 	/**
@@ -82,10 +82,10 @@ public class ECMInfo {
 	
 	/**
 	 * Expects data in the format of {line0, line1,line2,line3}, any individual line 
-	 * may be null, but otherwies lines must be complete. Updates the object.
+	 * may be null, but otherwise lines must be complete. Updates the object.
 	 * @param ecmDataLines
 	 */
-	public void parseData(String[] ecmDataLines) {
+	private void parseData(char[][] ecmDataLines) {
 		parseLine0(ecmDataLines[0]);
 		parseLine1(ecmDataLines[1]);
 		parseLine2(ecmDataLines[2]);
@@ -97,44 +97,41 @@ public class ECMInfo {
 	}
 	
 	
-	private void parseLine0(String dataLine) {
-		if (dataLine == null || dataLine.isEmpty()) { 
+	private void parseLine0(char[] dataLine) {
+		if (dataLine == null) { 
 			return; 
 		}
-		String[] s = getDataTokens(dataLine);
 
-		this.ect.setValue(Integer.decode("0x" + s[2] + s[1]));
-		this.iat.setValue(Integer.decode("0x" + s[4] + s[3]));
+		this.ect.setValue(HexUtils.hexCharArrayToInt(dataLine, 2, 5));
+		this.iat.setValue(HexUtils.hexCharArrayToInt(dataLine, 6, 9));
 		
 		// Fuel pressure appears to be a basic integer representing psi
 		// TODO looks wrong though. 
-		this.fuelPressure.setValue(Integer.decode("0x" + s[6])); 
+		this.fuelPressure.setValue(HexUtils.hexCharArrayToInt(dataLine, 12, 13)); 
 				
-		this.tps.setValue(Integer.decode("0x" + s[7]));
+		this.tps.setValue(HexUtils.hexCharArrayToInt(dataLine, 14, 15));
 	}
 
-	private void parseLine1(String dataLine) {
-		if (dataLine == null || dataLine.isEmpty()) { 
+	private void parseLine1(char[] dataLine) {
+		if (dataLine == null) { 
 			return; 
 		}
-		String[] s = getDataTokens(dataLine);
 		
-		this.rpm.setValue(Integer.decode("0x" + s[4] + s[3])); 
+		this.rpm.setValue(HexUtils.hexCharArrayToInt(dataLine, 6, 9));//Integer.decode("0x" + s[4] + s[3])); 
 	}
 
-	private void parseLine2(String dataLine) {
+	private void parseLine2(char[] dataLine) {
 		// TODO Auto-generated method stub
 		
 	}
 
-	private void parseLine3(String dataLine) {
-		if (dataLine == null || dataLine.isEmpty()) { 
+	private void parseLine3(char[] dataLine) {
+		if (dataLine == null) { 
 			return; 
 		}
-		String[] s = getDataTokens(dataLine);
 		
 		//TODO looks wrong
-		this.iac.setValue(Integer.decode("0x" + s[1])); 
+		this.iac.setValue(HexUtils.hexCharArrayToInt(dataLine, 2, 3)); 
 	}
 
 	public void printCurrentData() {

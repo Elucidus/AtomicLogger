@@ -62,15 +62,15 @@ public class ECMInfoTest {
 		
 		//Try 50
 		String tps50Blob = "  can0       301   [8]  00 17 05 15 05 44 06 64\n";
-		info.parseData(new String[] {tps50Blob, null, null, null});
+		info.parseData(tps50Blob);
 		assertEquals(50, info.tps.currentValue);
 		//Try 100
 		String tps100Blob = "  can0       301   [8]  00 17 05 15 05 44 06 C8\n";
-		info.parseData(new String[] {tps100Blob, null, null, null});
+		info.parseData(tps100Blob);
 		assertEquals(100, info.tps.currentValue);
 		//try 25
 		String tps25Blob = "  can0       301   [8]  00 17 05 15 05 44 06 32\n";
-		info.parseData(new String[] {tps25Blob, null, null, null});
+		info.parseData(tps25Blob);
 		assertEquals(25, info.tps.currentValue);
 	}
 
