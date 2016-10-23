@@ -9,27 +9,11 @@ extern "C" {
 #endif
 /*
  * Class:     com_sharkylabs_comm_JNICanReader
- * Method:    openSocket
- * Signature: (Ljava/lang/String;)I
- */
-JNIEXPORT jint JNICALL Java_com_sharkylabs_comm_JNICanReader_openSocket
-  (JNIEnv *, jclass, jstring);
-
-/*
- * Class:     com_sharkylabs_comm_JNICanReader
  * Method:    poll
- * Signature: ()[B
+ * Signature: (Ljava/lang/String;)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_com_sharkylabs_comm_JNICanReader_poll
-  (JNIEnv *, jclass);
-
-/*
- * Class:     com_sharkylabs_comm_JNICanReader
- * Method:    closeSocket
- * Signature: ()I
- */
-JNIEXPORT jint JNICALL Java_com_sharkylabs_comm_JNICanReader_closeSocket
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jstring);
 
 #ifdef __cplusplus
 }
