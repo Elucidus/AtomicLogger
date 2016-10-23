@@ -24,4 +24,9 @@ public abstract class AbstractTemperatureSensor extends AbstractPID {
 		// then convert from C to F
 		this.currentValue = ((newValue / 4) - 273) * 9 / 5 + 32; 
 	}
+	
+	public final void setValue(byte lowValue, byte highValue) {
+		int intValue = ((highValue & (int)0xFF) << 8) + (lowValue & (int)0xFF);
+		this.currentValue = ((intValue / 4) - 273) * 9 / 5 + 32;
+	}
 }

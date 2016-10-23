@@ -15,10 +15,20 @@ public class ECMInfo {
 	public static final int ECM_PID = 301;
 	
 	/**
+	 * Atomic CAN data is dumped in 4 rows of 8 byte-width. 
+	 */
+	public static final int DATA_ROW_WIDTH = 8;
+	
+	/**
 	 * Stores latest ECM frames.
 	 */
 	private char[][] buffer;
-	
+
+	/**
+	 * Stores the latest ECM frames, received from socket can directly. Should be much faster
+	 * than the previous implementation. 
+	 */
+	private byte[] directBuffer; 
 	/**
 	 * Buffer used to grab lines of ECM data frames during parsing.
 	 * Stored at class level to decrease churn. 
@@ -49,16 +59,34 @@ public class ECMInfo {
 		}
 	}
 	
+	/**
+	 * Designed to parse data straight from the JNI utils, a 32-byte wide array that 
+	 * captures an entire line of data from the ECM (pid 301). 
+	 * @param ecmData
+	 */
+	public void parseData(byte[] ecmData) {
+		if (ecmData == null || ecmData.length != 32) {
+			throw new IllegalArgumentException("Null or wrong size byte array.");
+		}
+		directBuffer = ecmData;
+		
+		parseData();
+	}
+	
 	/** 
 	 * This method parses a single batch of char arrays of ECM data (rows 0-3), 
 	 * it may be a subset but it has to be wholly formed lines. Elements of the data 
 	 * object will be updated.  
-	 * @param ecmDataTrim
+	 * @param ecmDataTrim Raw string of a format like the candump socketcan util.
 	 */
 	public void parseData(String ecmData) {
 		if (ecmData == null || ecmData.trim().isEmpty()) { 
 			System.err.println("parseData(Str): invalid input");
 			return;
+		}
+		if (directBuffer != null) {
+			//since we've received a stdin buffer, clear out the direct buffer. 
+			directBuffer = null;
 		}
 		
 		char[] ecmDataBytes = ecmData.toCharArray();
@@ -119,18 +147,32 @@ public class ECMInfo {
 	
 	
 	private void parseLine0() {
-		this.ect.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 2, 5));
-		this.iat.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 6, 9));
-		
-		// Fuel pressure appears to be a basic integer representing psi
-		// TODO looks wrong though. 
-		this.fuelPressure.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 12, 13)); 
-				
-		this.tps.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 14, 15));
+		if (directBuffer != null) {
+			this.ect.setValue(this.directBuffer[1], this.directBuffer[2]);
+			this.iat.setValue(this.directBuffer[3], this.directBuffer[4]);
+			
+			// ignore fuel pressure for now...
+			
+			this.tps.setValue(0xFF & this.directBuffer[7]);
+		} else {
+			this.ect.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 2, 5));
+			this.iat.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 6, 9));
+			
+			// Fuel pressure appears to be a basic integer representing psi
+			// TODO looks wrong though. 
+			this.fuelPressure.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 12, 13)); 
+					
+			this.tps.setValue(HexUtils.hexCharArrayToInt(this.buffer[0], 14, 15));
+		}
 	}
 
 	private void parseLine1() {
-		this.rpm.setValue(HexUtils.hexCharArrayToInt(this.buffer[1], 6, 9));
+		int offset = 1 * DATA_ROW_WIDTH; 
+		if (directBuffer != null) {
+			this.rpm.setValue(this.directBuffer[offset + 3], this.directBuffer[offset + 4]);
+		} else {
+			this.rpm.setValue(HexUtils.hexCharArrayToInt(this.buffer[1], 6, 9));
+		}
 	}
 
 	private void parseLine2() {

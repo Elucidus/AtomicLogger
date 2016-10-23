@@ -18,4 +18,14 @@ public class RPM extends AbstractPID {
 		// current derivation of RPM is unknown, using test value for now
 		this.currentValue = newValue; 
 	}
+	
+	/**
+	 * Setter for data coming straight from the ECM. 
+	 * @param low
+	 * @param high
+	 */
+	public void setValue(byte low, byte high) {
+		this.currentValue = (low & 0xFF) + ((high & 0xFF) << 8); 
+		
+	}
 }
