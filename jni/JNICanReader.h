@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     com_sharkylabs_comm_JNICanReader
  * Method:    poll
- * Signature: (Ljava/lang/String;)[B
+ * Signature: (Ljava/lang/String;[B)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_com_sharkylabs_comm_JNICanReader_poll
-  (JNIEnv *, jclass, jstring);
+  (JNIEnv *, jclass, jstring, jbyteArray);
 
 #ifdef __cplusplus
 }

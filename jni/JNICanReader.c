@@ -20,7 +20,7 @@
  * Method:    poll
  * Signature: ()[B
  */
-JNIEXPORT jbyteArray JNICALL Java_com_sharkylabs_comm_JNICanReader_poll(JNIEnv * env, jclass class, jstring interfaceJString) { 
+JNIEXPORT jbyteArray JNICALL Java_com_sharkylabs_comm_JNICanReader_poll(JNIEnv * env, jclass class, jstring interfaceJString, jbyteArray jbytes) { 
 
     int g_socketId;
     struct sockaddr_can addr;
@@ -74,11 +74,6 @@ JNIEXPORT jbyteArray JNICALL Java_com_sharkylabs_comm_JNICanReader_poll(JNIEnv *
         // printf("row: %d data 1 %d 2 %d 3 %d\n", frames[i].data[0], frames[i].data[1], frames[i].data[2], frames[i].data[3]);
     }
 
-    jbyteArray outArray = (*env)->NewByteArray(env, 4*8);
-    if (NULL == outArray) {
-        printf("Error allocating byte array in poll()\n"); 
-        return NULL;
-    }
-    (*env)->SetByteArrayRegion(env, outArray, 0, 4*8, (jbyte*)canFrameBytes);
-    return outArray;
+    (*env)->SetByteArrayRegion(env, jbytes, 0, 4*8, (jbyte*)canFrameBytes);
+    return jbytes;
   }
