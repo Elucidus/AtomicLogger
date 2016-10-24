@@ -1,7 +1,5 @@
 package com.sharkylabs;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 import javafx.application.Application;
@@ -15,9 +13,13 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
+import com.sharkylabs.thread.CANBusPollingThread;
+import com.sharkylabs.thread.HammerThread;
+import com.sharkylabs.thread.InputPollingThread;
 import com.sharkylabs.ui.BarGraph;
 import com.sharkylabs.ui.IGauge;
 import com.sharkylabs.ui.Tachometer;
+import com.sharkylabs.util.GlobalConstants;
 
 /**
  * GaugeCluster is the entry point for viewing the data in a small dashboard format.
@@ -27,50 +29,33 @@ public class GaugeCluster extends Application {
 	private static ECMInfo ecmInfo;
 	private static GaugeCanvas canvas;
 	
-	// Streams for demo mode
-	private static final int DATA_INPUT_SIZE = 10000;
-	private static ArrayList<String> dataInput;
-
-	/**
-	 * The update delay in ms - controls how frequently to fire UX update events.
-	 */
-	private static int updateDelayMsec = 20;
-	private static boolean demoMode = false;
-	
-	// used for performance evaluation
-	private static long START_TIME_MSEC;
-	private static long OVERRUN_COUNT = 0, UNDERRUN_COUNT = 0;
-
 	public static void main(String[] args) {
 		ecmInfo = new ECMInfo();
 		
 		if (args.length >= 1) {
 			if (args[0].equals("-?")) {
-				System.out.println("Usage: java com.sharkylabs.GaugeCluster <polling time in msec> <demo>"
-						+ "\nArguments are optional but you must specify a polling time to run \"demo\"");
+				System.out.println("Usage: " 
+						+ "\njava com.sharkylabs.GaugeCluster <can interface e.g. \"can0\" <optional: polling time in msec> "
+						+ "\njava com.sharkylabs.GaugeCluster \"demo\" <optional: polling time in msec> ");
 				System.out.println("System info:" + com.sun.prism.GraphicsPipeline.getPipeline().getClass().getName());
 				System.exit(0);
 			}
-			updateDelayMsec = Integer.parseInt(args[0]);
-			System.out.println("new update delay:" + updateDelayMsec);
-			if (args.length >= 2 && args[1].equals("demo")) {
-				demoMode = true; 
+			if (args.length >= 2) {
+				GlobalConstants.UPDATE_DELAY_MSEC = Integer.parseInt(args[1]);
+			}
+			System.out.println("new update delay:" + GlobalConstants.UPDATE_DELAY_MSEC);
+			if (args.length >= 1 && args[0].equals("demo")) {
+				GlobalConstants.DEMO_MODE = true; 
+			} else {
+				// if it's not demo, the user specified a CAN interface 
+				GlobalConstants.INTERFACE_NAME = args[0];
 			}
 		}
 		
-		if (demoMode) {
-			START_TIME_MSEC = System.currentTimeMillis();
-			dataInput = new ArrayList<>(DATA_INPUT_SIZE);
-			Thread hT = new HammerThread();
-			hT.start();
-		}
-		
-		Thread t = new PollingThread();
-		t.start();
 		launch(args);
 	}
 
-	private static class ECMUpdateEvent extends Event {
+	public static class ECMUpdateEvent extends Event {
 		private static final long serialVersionUID = 1L;
 
 		public ECMUpdateEvent() {
@@ -101,122 +86,21 @@ public class GaugeCluster extends Application {
 		canvas.doPostInit();
 		stage.setScene(scene);
 		stage.show();
-	}
-
-	/**
-	 * This thread hammers random TPS data - for testing UI latency.
-	 */
-	@SuppressWarnings("unused")
-	private static class HammerThread extends Thread {
-		String[] lines = { "can0       301   [8]  00 17 05 15 05 44 06 C6\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n",
-				"can0       301   [8]  00 17 05 15 05 44 06 A2\n" + "  can0       301   [8]  01 2B 01 EE 02 D8 02 00\n",
-				"can0       301   [8]  00 17 05 15 05 44 06 20\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n",
-				"can0       301   [8]  00 17 05 15 05 44 06 00\n" + "  can0       301   [8]  01 2B 01 EE 02 D8 02 00\n",
-				"can0       301   [8]  00 17 05 15 05 44 06 20\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n",
-				"can0       301   [8]  00 17 05 15 05 44 06 80\n" + "  can0       301   [8]  01 2B 01 EE 02 D8 02 00\n",
-				"can0       301   [8]  00 17 05 15 05 44 06 B2\n" + "  can0       301   [8]  01 2B 01 BC 02 D8 02 00\n", };
-
-		@Override
-		public void run() {
-			int currentLine = 0;
-			long lastFiredEvent = 0;
-			boolean pastFirstOverrun = false;
-			
-			try {
-				//it takes a small amount of time for the UI to init - make sure not to hammer the UI before it's done initializing 
-				sleep(1000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-			
-			while (true) {
-				currentLine++;
-				if (currentLine == lines.length) {
-					currentLine = 0;
-				}
-				synchronized (dataInput) {
-					if (dataInput.size() == DATA_INPUT_SIZE) {
-						if (!pastFirstOverrun) {
-							System.out.println("First overrun after: " + (System.currentTimeMillis() - START_TIME_MSEC));
-							pastFirstOverrun = true;
-						}
-						
-						System.out.println("OR:" + (++OVERRUN_COUNT - UNDERRUN_COUNT));
-						continue;
-					} else {
-						dataInput.add(lines[currentLine]);
-					}	
-				}
-			}
+		
+		if (!GlobalConstants.DEMO_MODE) {
+			Thread canThread = new CANBusPollingThread(ecmInfo, canvas);
+			canThread.start();
+		} else {
+			System.out.println("Initializing demo mode.");
+			Thread hT = new HammerThread();
+			hT.start();
+			Thread t = new InputPollingThread(ecmInfo, canvas);
+			t.start();
 		}
 	}
 
-	/**
-	 * This thread polls stdin for CAN data line by line.
-	 */
-	private static class PollingThread extends Thread {
-		@Override
-		public void run() {
-			try {
-				long lastFiredEvent = 0;
-				if (demoMode) {
-					while (true) {
-						long currentTime = System.currentTimeMillis();
-						if ((currentTime - lastFiredEvent) > updateDelayMsec) {
-							//read 4 lines
-							String line = null;
-							synchronized (dataInput) {
-								if (GaugeCluster.dataInput.size() < 4) {
-									System.out.println("UR:" + (OVERRUN_COUNT - ++UNDERRUN_COUNT));
-									continue;
-								}
-								line = dataInput.remove(0) + dataInput.remove(0) + dataInput.remove(0) + dataInput.remove(0);
-							}
-							if (canvas != null)  {
-								lastFiredEvent = currentTime;
-								ecmInfo.parseData(line);
-								canvas.fireEvent(new ECMUpdateEvent());
-								ecmInfo.printCurrentData();
-							}
-						} else {
-							//dump up to 4 lines
-							synchronized (dataInput) {
-								for (int i = 0; i < 5000 && i < dataInput.size(); i++) {
-									dataInput.remove(0);
-								}
-							}
-						}
-					}
-				} else {
-					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-					while (true) {
-						long currentTime = System.currentTimeMillis();
-						if ((currentTime - lastFiredEvent) > updateDelayMsec) {
-							// reset the counter
-							lastFiredEvent = currentTime;
-							// get a full frame of data
-							String line = br.readLine() + "\n" + br.readLine() + "\n"
-									 + br.readLine() + "\n"  + br.readLine();
-							ecmInfo.parseData(line);
-							if (canvas != null)  {
-								// TODO move code to kick off thread to stage init
-								canvas.fireEvent(new ECMUpdateEvent());
-								ecmInfo.printCurrentData();
-							}
-						} else {
-							// dump data
-							br.readLine();
-						}
-						
-						
-					}
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
+	
+	
 	private class GaugeCanvas extends Canvas {
 		//needed to add custom canvases for transforms 
 		private BarGraph tpsGraph;
@@ -226,6 +110,9 @@ public class GaugeCluster extends Application {
 		private BarGraph iacGraph;
 		
 		private Tachometer tach;
+		
+		private long startTime = 0;
+		private int drawCount = 0;
 		
 		private ArrayList<IGauge> gauges = new ArrayList<>(3);
 		
@@ -253,10 +140,16 @@ public class GaugeCluster extends Application {
 		}
 
 		public void redraw() {
+			if (startTime == 0) {
+				startTime = System.currentTimeMillis();
+			}
 			GraphicsContext gc = getGraphicsContext2D();
 			for (IGauge gauge : gauges) {
 				gauge.onDraw(gc);
 			}
+			
+			drawCount++;
+			System.out.println("FPS:" + (drawCount * 1000 / (System.currentTimeMillis() - startTime)));
 		}
 	}
 

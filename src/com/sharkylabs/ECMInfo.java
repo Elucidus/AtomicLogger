@@ -20,6 +20,11 @@ public class ECMInfo {
 	public static final int DATA_ROW_WIDTH = 8;
 	
 	/**
+	 * Atomic CAN data is dumped in 4 rows of 8 byte-width. 
+	 */
+	public static final int DATA_ROW_COUNT = 4;
+	
+	/**
 	 * Stores latest ECM frames.
 	 */
 	private char[][] buffer;
