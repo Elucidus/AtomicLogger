@@ -73,7 +73,8 @@ JNIEXPORT jbyteArray JNICALL Java_com_sharkylabs_comm_JNICanReader_poll(JNIEnv *
 	memcpy(canFrameBytes + (i*8), frames[i].data, 8);
         // printf("row: %d data 1 %d 2 %d 3 %d\n", frames[i].data[0], frames[i].data[1], frames[i].data[2], frames[i].data[3]);
     }
-
+    
+    close(g_socketId);
     (*env)->SetByteArrayRegion(env, jbytes, 0, 4*8, (jbyte*)canFrameBytes);
     return jbytes;
   }
