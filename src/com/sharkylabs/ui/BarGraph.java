@@ -1,9 +1,9 @@
 package com.sharkylabs.ui;
 
-import com.sharkylabs.pid.AbstractPID;
-
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+
+import com.sharkylabs.pid.AbstractPID;
 
 public class BarGraph implements IGauge {
 
@@ -35,8 +35,16 @@ public class BarGraph implements IGauge {
 
 		gc.setFill(Color.RED);
 		// when filling the range, you need to determine the relative position given
-		// the min and max value. 
-		double ratio = (double)pid.currentValue / (double)(pid.maxValue - pid.minValue);
+		// the min and max value.
+		double drawValue = pid.minValue;
+		if (pid.currentValue > pid.minValue) {
+			if (pid.currentValue > pid.maxValue) {
+				drawValue = pid.maxValue;
+			} else {
+				drawValue = pid.currentValue;
+			}
+		}
+		double ratio = (drawValue - pid.minValue) / (double)(pid.maxValue - pid.minValue);
 		gc.fillRect(this.xAnchor, this.yAnchor, ratio * this.width, this.height);
 	}
 

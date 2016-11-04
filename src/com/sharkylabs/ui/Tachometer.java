@@ -39,9 +39,6 @@ public class Tachometer implements IGauge {
 		needleCanvas = new Canvas(640, 480); //TODO: abstract canvas size
 	}
 	
-//	double min = 0.0, max = 8000.0; 
-//	double currentRPM = 0;
-//	boolean accelerating = true;
 	@Override
 	public void onDraw(GraphicsContext gc) {
 		gc.drawImage(this.tachBG, this.xAnchor, this.yAnchor);
@@ -49,16 +46,6 @@ public class Tachometer implements IGauge {
 
 		// range for the image, 0 = -144, redline = 144
 		double rpmAngle = (pid.currentValue / MAX_RPM) * 288 - 144;
-//		double rpmAngle = (currentRPM / max) * 288 - 144;
-//		if (accelerating) {
-//			currentRPM += 20;
-//		} else {
-//			currentRPM -= 20;
-//		}
-//		if (currentRPM >= 8000 || currentRPM <= 0) {
-////			accelerating = !accelerating;
-//			currentRPM = 4500;
-//		}
 		drawRotatedImage(needleCanvas.getGraphicsContext2D(), this.tachNeedle, rpmAngle, this.xAnchor, this.yAnchor);
 	}
 
