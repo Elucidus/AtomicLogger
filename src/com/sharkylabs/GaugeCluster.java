@@ -3,6 +3,7 @@ package com.sharkylabs;
 import java.util.ArrayList;
 
 import javafx.application.Application;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
@@ -10,6 +11,8 @@ import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
@@ -69,7 +72,7 @@ public class GaugeCluster extends Application {
 	@Override
 	public void start(Stage stage) throws Exception {
 		Group root = new Group();
-		Scene scene = new Scene(root, 640, 480, Color.LIGHTGREY);
+		Scene scene = new Scene(root, 800, 480, Color.LIGHTGREY);
 		canvas = new GaugeCanvas(640, 480, root, ecmInfo);
 		canvas.addEventHandler(ECMUpdateEvent.EVENT_TYPE_ECM_UPDATE,
 				new EventHandler<ECMUpdateEvent>() {
@@ -82,7 +85,18 @@ public class GaugeCluster extends Application {
 				});
 		canvas.redraw();
 
-		root.getChildren().add(canvas);
+		HBox hBox = new HBox();
+		hBox.getChildren().add(canvas);
+		
+		Button exitButton = new Button("Exit");
+		exitButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle (ActionEvent e) {
+				System.exit(0);
+			}
+		});
+		hBox.getChildren().add(exitButton);
+		root.getChildren().add(hBox);
 		canvas.doPostInit();
 		stage.setScene(scene);
 		stage.show();
